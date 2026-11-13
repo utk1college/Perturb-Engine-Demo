@@ -1,0 +1,362 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Perturb Engine</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%231c2b45'/%3E%3Cpath d='M7 20c4-6 7 4 11-2s5 2 7-1' stroke='%23f0be3c' stroke-width='3' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
+<style>
+@font-face { font-family: "Young Serif"; src: url("fonts/YoungSerif-Regular.ttf") format("truetype"); font-display: swap; }
+@font-face { font-family: "Source Serif 4"; src: url("fonts/SourceSerif4.ttf") format("truetype"); font-weight: 200 900; font-display: swap; }
+@font-face { font-family: "Source Serif 4"; src: url("fonts/SourceSerif4-Italic.ttf") format("truetype"); font-weight: 200 900; font-style: italic; font-display: swap; }
+@font-face { font-family: "Caveat"; src: url("fonts/Caveat.ttf") format("truetype"); font-weight: 400 700; font-display: swap; }
+@font-face { font-family: "Plex Mono"; src: url("fonts/IBMPlexMono-Regular.ttf") format("truetype"); font-weight: 400; }
+@font-face { font-family: "Plex Mono"; src: url("fonts/IBMPlexMono-Medium.ttf") format("truetype"); font-weight: 500; }
+
+:root {
+  --paper: #f5efe2;
+  --paper-2: #ece4d2;
+  --card: #fbf8f1;
+  --ink: #1c2b45;          /* blue-black fountain-pen ink */
+  --ink-soft: #4a5670;
+  --muted: #7d7a72;
+  --rule: #d8cfbb;
+  --marker: #f0be3c;       /* highlighter */
+  --marker-soft: #f7dc8e;
+  --pass: #2f6b3c;
+  --fail: #b5372a;          /* teacher's red pen */
+  --display: "Young Serif", "Georgia", serif;
+  --text: "Source Serif 4", "Georgia", "Cambria", serif;
+  --hand: "Caveat", "Segoe Print", cursive;
+  --mono: "Plex Mono", "Consolas", monospace;
+}
+* { box-sizing: border-box; }
+html { font-size: 19px; }
+body {
+  margin: 0; background: var(--paper); color: var(--ink);
+  font-family: var(--text); line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+.wrap { max-width: 1240px; margin: 0 auto; padding: 0 40px; }
+
+/* ---------- header ---------- */
+header { padding: 46px 0 8px; display: grid; grid-template-columns: 1fr auto; gap: 24px; align-items: end; }
+h1 {
+  font-family: var(--display); font-weight: 400; font-size: 4.1rem; line-height: 1;
+  margin: 0; letter-spacing: -0.01em; position: relative; display: inline-block;
+}
+h1 .squiggle { position: absolute; left: 2px; right: 0; bottom: -18px; width: 100%; height: 18px; }
+.tagline { font-size: 1.32rem; max-width: 52ch; margin: 34px 0 0; color: var(--ink); }
+.tagline em { font-style: italic; }
+.margin-note {
+  font-family: var(--hand); font-size: 1.55rem; line-height: 1.15; color: var(--ink-soft);
+  transform: rotate(-3deg); text-align: right; max-width: 15ch; margin-bottom: 4px;
+}
+.margin-note svg { display: block; margin: 4px 0 0 auto; }
+
+/* ---------- input slip ---------- */
+.slip {
+  margin-top: 34px; background: var(--card); border: 1.5px solid var(--ink);
+  border-radius: 3px; padding: 22px 26px 20px; position: relative;
+  box-shadow: 5px 5px 0 var(--paper-2);
+}
+.slip label { font-family: var(--display); font-size: 1.05rem; display: block; margin-bottom: 6px; }
+textarea {
+  width: 100%; border: 0; outline: 0; resize: vertical; min-height: 92px;
+  font-family: var(--text); font-size: 1.35rem; line-height: 46px; color: var(--ink);
+  background: transparent repeating-linear-gradient(to bottom, transparent 0 45px, var(--rule) 45px 46px);
+  padding: 0 2px; margin: 0;
+}
+textarea:focus-visible { background-color: #fffdf6; }
+.row { display: flex; flex-wrap: wrap; gap: 14px 18px; align-items: center; margin-top: 16px; }
+button.go {
+  font-family: var(--display); font-size: 1.15rem; color: var(--card); background: var(--ink);
+  border: 0; border-radius: 3px; padding: 12px 30px 13px; cursor: pointer;
+}
+button.go:hover { background: #2b3e60; }
+button.go:disabled { opacity: .6; cursor: progress; }
+button.go:focus-visible, .preset:focus-visible { outline: 3px solid var(--marker); outline-offset: 3px; }
+.hint { color: var(--muted); font-size: .9rem; }
+.presets { margin-top: 18px; display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 10px; }
+.presets .try { font-family: var(--hand); font-size: 1.5rem; color: var(--ink-soft); margin-right: 4px; }
+.preset {
+  font-family: var(--text); font-size: .95rem; color: var(--ink); background: none; cursor: pointer;
+  border: 1.5px dashed var(--ink-soft); border-radius: 3px; padding: 5px 12px;
+}
+.preset:hover { background: var(--marker-soft); border-style: solid; }
+.preset small { color: var(--muted); font-size: .78rem; margin-left: 6px; font-family: var(--mono); }
+
+/* ---------- status line ---------- */
+.status { margin: 34px 0 6px; min-height: 30px; display: flex; gap: 18px; align-items: baseline; flex-wrap: wrap; }
+.status .time { font-family: var(--mono); font-size: .9rem; color: var(--ink-soft); }
+.status .err { color: var(--fail); font-weight: 600; }
+.status .busy { font-family: var(--hand); font-size: 1.6rem; color: var(--ink-soft); }
+
+/* ---------- axis sections ---------- */
+.axis { border-top: 2px solid var(--ink); padding: 26px 0 34px; }
+.axis-head { display: grid; grid-template-columns: auto 1fr auto; gap: 18px; align-items: baseline; }
+.axis-num { font-family: var(--display); font-size: 2.7rem; line-height: 1; color: var(--marker); -webkit-text-stroke: 1px var(--ink); }
+.axis h2 { font-family: var(--display); font-weight: 400; font-size: 2rem; margin: 0; line-height: 1.1; }
+.axis h2 span { font-family: var(--text); font-size: 1.05rem; color: var(--ink-soft); margin-left: 12px; font-style: italic; }
+.verdict { font-family: var(--mono); font-weight: 500; font-size: 1rem; letter-spacing: .06em; padding: 2px 10px; border: 2px solid; border-radius: 2px; transform: rotate(-2deg); }
+.verdict.ok { color: var(--pass); }
+.verdict.no { color: var(--muted); }
+
+.rule-line { margin: 16px 0 14px; display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: baseline; }
+code, .code { font-family: var(--mono); font-size: .86rem; background: var(--paper-2); padding: 2px 7px; border-radius: 2px; color: var(--ink); }
+.rule-line .desc { font-size: 1.02rem; }
+
+.pair { display: grid; grid-template-columns: 1fr 44px 1fr; gap: 0; align-items: stretch; }
+.side { background: var(--card); border: 1px solid var(--rule); padding: 16px 20px 18px; border-radius: 2px; }
+.side .lab { font-family: var(--hand); font-size: 1.35rem; color: var(--ink-soft); line-height: 1; margin-bottom: 8px; }
+.side .t { font-size: 1.42rem; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
+.side.new { border-color: var(--ink); }
+.arrow { display: flex; align-items: center; justify-content: center; }
+del { color: var(--muted); text-decoration: line-through; text-decoration-color: var(--fail); text-decoration-thickness: 2px; }
+ins {
+  text-decoration: none; padding: 0 3px; margin: 0 -1px; border-radius: 2px;
+  background: linear-gradient(100deg, transparent 0 1px, var(--marker) 3px calc(100% - 3px), transparent calc(100% - 1px)); -webkit-box-decoration-break: clone; box-decoration-break: clone;
+  background-size: 100% 78%; background-position: 0 70%; background-repeat: no-repeat;
+}
+
+/* ledger */
+.ledger { width: 100%; border-collapse: collapse; margin-top: 18px; font-size: .98rem; }
+.ledger th { text-align: left; font-family: var(--mono); font-weight: 500; font-size: .76rem; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-soft); padding: 0 12px 6px 0; border-bottom: 1.5px solid var(--ink); }
+.ledger td { padding: 5px 12px 5px 0; border-bottom: 1px dashed var(--rule); vertical-align: baseline; }
+.ledger td.num { font-family: var(--mono); font-size: .95rem; white-space: nowrap; }
+.ledger td.th { color: var(--ink-soft); font-family: var(--mono); font-size: .88rem; }
+.ledger td.mark { width: 92px; text-align: right; font-family: var(--mono); font-weight: 500; font-size: .9rem; white-space: nowrap; }
+.mark-pass { color: var(--pass); }
+.mark-fail { color: var(--fail); }
+.mark-na { color: var(--muted); font-weight: 400 !important; }
+.ledger tr.overall td { border-bottom: 0; border-top: 1.5px solid var(--ink); font-weight: 600; padding-top: 10px; }
+.tick { display: inline-block; vertical-align: -2px; margin-right: 4px; }
+
+.none-msg { margin: 18px 0 4px; font-size: 1.2rem; padding: 14px 18px; border: 1.5px dashed var(--ink-soft); border-radius: 2px; background: transparent; }
+.none-msg b { font-family: var(--display); font-weight: 400; }
+
+details { margin-top: 20px; }
+details summary { cursor: pointer; font-family: var(--display); font-size: 1.08rem; list-style: none; }
+details summary::-webkit-details-marker { display: none; }
+details summary::before { content: "+"; font-family: var(--mono); display: inline-block; width: 1.2em; }
+details[open] summary::before { content: "\2013"; }
+.rej { border-left: 0; margin: 14px 0 0; padding: 14px 18px; background: var(--card); border: 1px solid var(--rule); border-radius: 2px; }
+.rej .why { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: baseline; margin-bottom: 8px; }
+.rej .why b { color: var(--fail); font-weight: 600; }
+.rej .t { font-size: 1.15rem; white-space: pre-wrap; overflow-wrap: anywhere; }
+.rej .ledger { font-size: .9rem; margin-top: 10px; }
+.alt-note { font-family: var(--hand); font-size: 1.3rem; color: var(--ink-soft); }
+
+.empty { padding: 40px 0 60px; color: var(--ink-soft); font-size: 1.1rem; }
+.empty p { max-width: 62ch; }
+main { padding-bottom: 60px; }
+details.checks { margin-top: 14px; }
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 480px), 1fr)); gap: 16px; margin-top: 18px; }
+.card { background: var(--card); border: 1px solid var(--ink); border-radius: 2px; padding: 14px 18px 12px; }
+.card-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin-bottom: 6px; }
+.card-label { font-family: var(--display); font-size: 1.12rem; }
+.card .t { font-size: 1.25rem; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
+.card details.checks { margin-top: 8px; }
+.card details.checks summary { font-size: .9rem; }
+.card .ledger { font-size: .86rem; }
+.card.typo ins { background: var(--marker); padding: 0 3px; margin: 0 1px; text-decoration: underline wavy var(--fail); text-decoration-thickness: 1.5px; text-underline-offset: 4px; }
+details.checks summary { font-family: var(--text); font-size: 1rem; color: var(--ink-soft); }
+.extras { margin-top: 18px; }
+.extras details { margin-top: 8px; }
+.extras details summary { font-family: var(--text); font-size: 1rem; color: var(--ink-soft); }
+
+@media (max-width: 900px) {
+  html { font-size: 17px; }
+  .wrap { padding: 0 16px; }
+  header { grid-template-columns: 1fr; }
+  .margin-note { display: none; }
+  h1 { font-size: 3rem; }
+  .pair { grid-template-columns: 1fr; }
+  .arrow { transform: rotate(90deg); height: 40px; }
+  .axis-head { grid-template-columns: auto 1fr; }
+  .verdict { grid-column: 1 / -1; justify-self: start; }
+  .ledger td.th, .ledger th.th { display: none; }
+}
+@media (min-width: 1600px) { html { font-size: 21px; } .wrap { max-width: 1420px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Perturb Engine
+        <svg class="squiggle" viewBox="0 0 400 18" preserveAspectRatio="none" aria-hidden="true">
+          <path d="M3 11 C 30 2, 48 16, 76 9 S 120 3, 150 10 S 200 16, 232 8 S 290 3, 318 10 S 372 15, 397 6" fill="none" stroke="#f0be3c" stroke-width="6" stroke-linecap="round"/>
+        </svg>
+      </h1>
+      <p class="tagline">Same meaning, different words. Rule-based rewording of education questions, with <em>every</em> rewrite checked for meaning before it is kept.</p>
+    </div>
+    <div class="margin-note" aria-hidden="true">no language model writes the rewrites
+      <svg width="70" height="40" viewBox="0 0 70 40"><path d="M64 4 C 60 22, 40 32, 10 30 M10 30 l9 -8 M10 30 l11 5" fill="none" stroke="#4a5670" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+  </header>
+
+  <form class="slip" id="form" autocomplete="off">
+    <label for="q">Your question</label>
+    <textarea id="q" rows="2" placeholder="Type a question or sentence, e.g. How do enzymes affect the rate of a chemical reaction?"></textarea>
+    <div class="row">
+      <button class="go" id="go" type="submit">Perturb</button>
+      <span class="hint">or press Ctrl + Enter</span>
+    </div>
+  </form>
+
+  <div class="presets" id="presets">
+    <span class="try">try one:</span>
+  </div>
+
+  <div class="status" id="status" aria-live="polite"></div>
+  <main id="out">
+    <div class="empty">
+      <p>Each question goes through three kinds of rewording. <b>Lexical</b> swaps a word for an exact synonym. <b>Syntactic</b> restructures the sentence with the same words. <b>Pragmatic</b> changes what surrounds the question: a neutral opener, an instruction before it, an unrelated sentence after it, or a keyboard typo.</p>
+      <p>A rewrite is kept only if it passes the hard checks (numbers, negations, protected text untouched), stays close in meaning by SBERT, and both versions imply each other by an NLI model. Pragmatic additions are checked one way only (the rewrite must still imply the original), since they add words on purpose. Anything that fails is shown as rejected, with the reason.</p>
+    </div>
+  </main>
+
+</div>
+
+<script>
+const PRESETS = [
+  ["I have a fever, what should I do?", "everyday"],
+  ["How do enzymes affect the rate of a chemical reaction?", "science"],
+  ["Can a doctor treat a patient without consent if it is an emergency?", "medical law"],
+  ["What are the main differences between mitosis and meiosis?", "biology"],
+  ["Does the moon have any effect on ocean tides?\nThanks in advance!", "with a thank-you"],
+];
+const AXIS_INFO = {
+  lexical:   ["Lexical", "a word swapped for an exact synonym"],
+  syntactic: ["Syntactic", "the sentence restructured, same words"],
+  discourse: ["Pragmatic", "framing, tone and noise around the question"],
+};
+const $ = s => document.querySelector(s);
+const esc = s => s.replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+const tick = '<svg class="tick" width="16" height="14" viewBox="0 0 16 14"><path d="M2 8 L6 12 L14 2" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+const cross = '<svg class="tick" width="14" height="14" viewBox="0 0 14 14"><path d="M2 2 L12 12 M12 2 L2 12" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>';
+const arrow = '<svg width="40" height="26" viewBox="0 0 40 26" aria-hidden="true"><path d="M3 15 C 12 9, 22 17, 34 12 M34 12 l-7 -6 M34 12 l-6 7" fill="none" stroke="#1c2b45" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+const box = $("#presets");
+PRESETS.forEach(([q, tag]) => {
+  const b = document.createElement("button");
+  b.type = "button"; b.className = "preset";
+  b.innerHTML = esc(q.replace("\n", " ")) + `<small>${tag}</small>`;
+  b.onclick = () => { $("#q").value = q; run(); };
+  box.appendChild(b);
+});
+
+// wrap only the words: never highlight line breaks or the spaces around a change
+function wrap(t, tag) {
+  return t.split(/(\n+)/).map(part => {
+    if (/^\n+$/.test(part) || !part.trim()) return esc(part);
+    const m = part.match(/^(\s*)([\s\S]*?)(\s*)$/);
+    return esc(m[1]) + `<${tag}>${esc(m[2])}</${tag}>` + esc(m[3]);
+  }).join("");
+}
+function side(diff, which) {
+  return diff.map(([op, t, tNew]) => {
+    if (op === "eq") return esc(which === "new" && tNew !== undefined ? tNew : t);
+    if (which === "orig" && op === "del") return wrap(t, "del");
+    if (which === "new" && op === "ins") return wrap(t, "ins");
+    return "";
+  }).join("");
+}
+
+function mark(ok) {
+  if (ok === null) return '<span class="mark-na">n/a</span>';
+  return ok ? `<span class="mark-pass">${tick}PASS</span>` : `<span class="mark-fail">${cross}FAIL</span>`;
+}
+function fmt(v) { return v === null ? "&mdash;" : (typeof v === "number" ? v.toFixed(3) : esc(String(v))); }
+
+function ledger(rows, passed) {
+  const body = rows.map(([label, v, th, ok]) =>
+    `<tr><td>${esc(label)}</td><td class="num">${fmt(v)}</td><td class="th">${esc(th)}</td><td class="mark">${mark(ok)}</td></tr>`).join("");
+  return `<table class="ledger"><thead><tr><th>Check</th><th>Score</th><th class="th">Needs</th><th style="text-align:right">Result</th></tr></thead>
+    <tbody>${body}<tr class="overall"><td>Overall</td><td></td><td class="th"></td><td class="mark">${mark(passed)}</td></tr></tbody></table>`;
+}
+
+function rejected(list) {
+  if (!list.length) return "";
+  const items = list.map(r => `
+    <div class="rej">
+      <div class="why"><b>${esc(r.reason)}</b><code>${esc(r.code)}</code><span class="hint">rule <code>${esc(r.rule)}</code></span></div>
+      <div class="t">${side(r.diff, "new")}</div>
+      ${r.checks ? ledger(r.checks, false) : ""}
+    </div>`).join("");
+  return `<details><summary>Rejected rewrites (${list.length})</summary>${items}</details>`;
+}
+
+function alsoPassed(list) {
+  if (!list.length) return "";
+  const items = list.map(r => `
+    <div class="rej">
+      <div class="why"><span class="alt-note">also passed, not used</span><span class="hint">rule <code>${esc(r.rule)}</code></span></div>
+      <div class="t">${side(r.diff, "new")}</div>
+      ${ledger(r.checks, true)}
+    </div>`).join("");
+  return `<details><summary>Other rewrites that also passed (${list.length})</summary>${items}</details>`;
+}
+
+function render(d) {
+  const html = d.axes.map((a, i) => {
+    const [name, sub] = AXIS_INFO[a.axis];
+    const acc = a.accepted;
+    let body;
+    if (a.cards && a.cards.length) {
+      body = `<div class="cards">${a.cards.map(c => `
+        <div class="card${c.rule === "p1.typo" ? " typo" : ""}">
+          <div class="card-head"><span class="card-label">${esc(c.label)}</span></div>
+          <div class="t">${side(c.diff, "new")}</div>
+          <details class="checks"><summary>Passed &middot; ${esc(c.checkset)}</summary>${ledger(c.checks, true)}</details>
+        </div>`).join("")}</div>`;
+    } else if (acc) {
+      body = `
+        <div class="rule-line"><span class="desc">${esc(acc.rule_text)}</span></div>
+        <div class="pair">
+          <div class="side"><div class="lab">original</div><div class="t">${side(acc.diff, "orig")}</div></div>
+          <div class="arrow">${arrow}</div>
+          <div class="side new"><div class="lab">rewrite</div><div class="t">${side(acc.diff, "new")}</div></div>
+        </div>
+        <details class="checks"><summary>All checks passed &middot; show the scores</summary>${ledger(acc.checks, true)}</details>`;
+    } else {
+      const [head, ...rest] = a.none_reason.split(": ");
+      body = `<div class="none-msg"><b>${esc(head)}</b>${rest.length ? ": " + esc(rest.join(": ")) : ""}</div>`;
+    }
+    const nk = a.cards && a.cards.length ? a.cards.length : (acc ? 1 : 0);
+    const verdict = nk ? `<span class="verdict ok">${nk > 1 ? nk + " " : ""}KEPT</span>` : '<span class="verdict no">NONE</span>';
+    return `<section class="axis">
+      <div class="axis-head"><span class="axis-num">${i + 1}</span><h2>${name}<span>${sub}</span></h2>${verdict}</div>
+      ${body}<div class="extras">${alsoPassed(a.also_passed)}${rejected(a.rejected)}</div>
+    </section>`;
+  }).join("");
+  $("#out").innerHTML = html;
+}
+
+let busy = false;
+async function run() {
+  const text = $("#q").value.trim();
+  if (!text || busy) return;
+  busy = true; $("#go").disabled = true;
+  $("#status").innerHTML = '<span class="busy">checking the rewrites&hellip;</span>';
+  const t0 = performance.now();
+  try {
+    const r = await fetch("/api/perturb", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({text})});
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || "Request failed");
+    render(d);
+    const t = d.timing, wall = (performance.now() - t0) / 1000;
+    $("#status").innerHTML = `<span class="time">done in ${wall.toFixed(1)} s${t.cached ? " &middot; same question as before, served from memory" : ""}</span>`;
+  } catch (e) {
+    $("#status").innerHTML = `<span class="err">${esc(e.message)}</span>`;
+  } finally {
+    busy = false; $("#go").disabled = false;
+  }
+}
+$("#form").addEventListener("submit", e => { e.preventDefault(); run(); });
+$("#q").addEventListener("keydown", e => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); run(); } });
+</script>
+</body>
+</html>

@@ -1,0 +1,9 @@
+# Tested with Python 3.12 on Windows (CPU).
+torch==2.11.0
+transformers==5.8.0
+sentence-transformers==5.4.1
+spacy==3.8.14
+lemminflect==0.2.3
+sentencepiece==0.2.3
+protobuf==7.36.2
+numpy==2.4.4

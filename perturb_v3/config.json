@@ -1,0 +1,18 @@
+{
+  "version": "v3.0",
+  "spacy_model": "en_core_web_lg-3.8.0",
+  "max_substitutions": 3,
+  "models": {
+    "sbert": {"name": "sentence-transformers/all-mpnet-base-v2", "revision": "e8c3b32edf5434bc2275fc9bab85f82640a19130"},
+    "nli": {"name": "MoritzLaurer/DeBERTa-v3-large-mnli-fever-anli-ling-wanli",
+            "revision": "b3546ea6b0346eb6f8d5d68b13c7dc6d0376b3d7",
+            "wrapper": "Someone asks the following question: {text}"}
+  },
+  "thresholds": {
+    "lexical":   {"sbert_global_min": 0.90, "sbert_local_min": 0.85, "entail_min": 0.80, "contra_max": 0.10},
+    "syntactic": {"sbert_global_min": 0.90, "sbert_local_min": 0.85, "entail_min": 0.80, "contra_max": 0.10},
+    "dis.frame": {"sbert_global_min": 0.70, "sbert_local_min": 0.0, "entail_min": 0.0, "contra_max": 1.0},
+    "dis.reorder": {"sbert_global_min": 0.90, "sbert_local_min": 0.0, "entail_min": 0.0, "contra_max": 1.0}
+  },
+  "notes": "Reorder-type discourse rules (title_to_end, question_first, drop_pleasantry) keep every word (hard check), so NLI on truncated long texts is not used for them; SBERT global still applies."
+}
